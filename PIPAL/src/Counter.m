@@ -1,3 +1,6 @@
+% Author      : Frank E. Curtis
+% Description : Class for algorithm counters.
+
 % Counters class
 classdef Counter < handle
   
@@ -14,12 +17,12 @@ classdef Counter < handle
   
   % Class methods
   methods
-
+    
     % Matrix factorization counter incrementor
     function incrementFactorizationCount(c)
       c.M = c.M + 1;
     end
-
+    
     % Function evaluation counter incrementor
     function incrementFunctionCount(c)
       c.f = c.f + 1;
@@ -34,7 +37,7 @@ classdef Counter < handle
     function incrementHessianCount(c)
       c.H = c.H + 1;
     end
-        
+    
     % Iteration counter incrementor
     function incrementIterationCount(c)
       c.k = c.k + 1;

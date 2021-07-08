@@ -1,9 +1,12 @@
+% Author      : Frank E. Curtis
+% Description : Class for handling algorithm output.
+
 % Output class
 classdef Output < handle
-
+  
   % Class properties (private access)
   properties (SetAccess = private, GetAccess = private)
-  
+    
     s % Output stream
     l % Line break string
     q % Quantities string
@@ -13,18 +16,18 @@ classdef Output < handle
   
   % Class methods
   methods
-
+    
     % Constructor
-    function o = Output
+    function o = Output(i,outfile)
       
       % Start clock
       tic;
       
       % Set output stream
-      o.s = fopen('pipal.out','w');
+      o.s = fopen(outfile,'w');
       
       % Assert output stream has been opened
-      assert(o.s~=-1,'PIPAL: Failed to open pipal.out.');
+      assert(o.s~=-1,sprintf('PIPAL: Failed to open %s.out.',i.id));
       
       % Store output strings
       o.l = '======+=========================+====================================+=========================+===========================================================================+=======================';
@@ -37,7 +40,9 @@ classdef Output < handle
     function printAcceptance(o,a)
       
       % Print steplengths
-      fprintf(o.s,'%.4e  %.4e\n',a.p,a.d);
+      fprintf(o.s,'%.4e  %.4e',a.p,a.d);
+      if a.s == 1, fprintf(o.s,' SOC'); end;
+      fprintf(o.s,'\n');
       
     end
     
@@ -58,7 +63,7 @@ classdef Output < handle
     end
     
     % Print output footer
-    function printFooter(o,c,p,z)
+    function printFooter(o,p,i,c,z)
       
       % Print final iterate information
       o.printIterate(c,z);
@@ -67,7 +72,7 @@ classdef Output < handle
       fprintf(o.s,'%s\n%s\n\n',o.n,o.l);
       
       % Get solver result
-      b = z.checkTermination(c,p);
+      b = z.checkTermination(p,i,c);
       
       % Print solver result
       fprintf(o.s,'Final result\n');
@@ -76,6 +81,8 @@ classdef Output < handle
       if b == 1, fprintf(o.s,'  EXIT: Optimal solution found\n'           ); end;
       if b == 2, fprintf(o.s,'  EXIT: Infeasible stationary point found\n'); end;
       if b == 3, fprintf(o.s,'  EXIT: Iteration limit reached\n'          ); end;
+      if b == 4, fprintf(o.s,'  EXIT: Invalid bounds\n'                   ); end;
+      if b == 5, fprintf(o.s,'  EXIT: Function evaluation error\n'        ); end;
       fprintf(o.s,'\n');
       
       % Print iterate quantities
@@ -104,6 +111,12 @@ classdef Output < handle
     
     % Print output header
     function printHeader(o,i,z)
+      
+      % Print problem name
+      fprintf(o.s,'Problem name\n');
+      fprintf(o.s,'============\n');
+      fprintf(o.s,'  %s\n',i.id);
+      fprintf(o.s,'\n');
       
       % Print problem size
       fprintf(o.s,'Problem size\n');

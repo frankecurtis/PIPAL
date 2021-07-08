@@ -1,3 +1,7 @@
+% Author      : Frank E. Curtis
+% Description : Class for direction quantities and routines; methods for
+%               evaluating search directions and model values/reductions.
+
 % Direction class
 classdef Direction < handle
   
@@ -19,14 +23,14 @@ classdef Direction < handle
     ltred   % Penalty-interior-point linear model reduction value
     qtred   % Penalty-interior-point quadratic model reduction value
     m       % Quality function value
-
+    
   end
   
   % Class methods
   methods
     
     % Constructor
-    function d          = Direction
+    function d = Direction
       
       % Initialize last direction norm
       d.x_norm_ = inf;
@@ -34,13 +38,10 @@ classdef Direction < handle
     end
     
     % Evaluate linear combination of directions
-    %   References : i.*
-    %   Calls      : -
-    %   Modifies   : x, x_norm, r1, r2, lE, s1, s2, lI, l_norm
-    function              evalLinearCombination(d,i,d1,d2,d3,a)
+    function evalLinearCombination(d,i,d1,d2,d3,a)
       
       % Evaluate linear combinations
-                   d.x  = a(1)*d1.x  + a(2)*d2.x  + a(3)*d3.x;
+      d.x  = a(1)*d1.x  + a(2)*d2.x  + a(3)*d3.x;
       if i.nE > 0, d.r1 = a(1)*d1.r1 + a(2)*d2.r1 + a(3)*d3.r1;
                    d.r2 = a(1)*d1.r2 + a(2)*d2.r2 + a(3)*d3.r2; end;
       if i.nI > 0, d.s1 = a(1)*d1.s1 + a(2)*d2.s1 + a(3)*d3.s1;
@@ -57,10 +58,7 @@ classdef Direction < handle
     end
     
     % Evaluate model and model reductions
-    %   References : i.*, z.rho, z.mu, z.g, z.H, z.cE, z.JE, z.r1, z.r2, z.lE, z.cI, z.JI, z.s1, z.s2, z.lI, x, r1, r2, lE, s1, s2, lI
-    %   Calls      : -
-    %   Modifies   : lred0, ltred0, ltred, qtred, m
-    function              evalModels(d,i,z)
+    function evalModels(d,i,z)
       
       % Evaluate reduction in linear model of penalty-interior-point objective for zero penalty parameter
       d.lred0 = 0;
@@ -69,7 +67,7 @@ classdef Direction < handle
       
       % Evaluate remaining quantities only for nonzero penalty parameter
       if z.rho > 0
-      
+        
         % Evaluate reduction in linear model of merit function for zero penalty parameter
         d.ltred0 = 0;
         if i.nE > 0, d.ltred0 = d.ltred0 - (1/2)*full(sum(((1-z.mu./z.r1).*(-1+z.cE./(sqrt(z.cE.^2 +   z.mu^2)))+(1-z.mu./z.r2).*(1+z.cE./(sqrt(z.cE.^2 +   z.mu^2)))).*(z.JE*d.x))); end;
@@ -99,22 +97,19 @@ classdef Direction < handle
         
         % Evaluate quality function
         d.m = norm(vec,inf);
-      
+        
       end
       
     end
     
     % Evaluate Newton step
-    %   References : i.*, z.AS, z.AP, z.AL, z.AD, z.b
-    %   Calls      : -
-    %   Modifies   : x, r1, r2, lE, s1, s2, lI, x_norm, l_norm
-    function              evalNewtonStep(d,i,z)
+    function evalNewtonStep(d,i,z)
       
       % Evaluate direction
       dir = z.AS(:,z.AP)*(z.AL'\(z.AD\(z.AL\(z.AS(z.AP,:)*(-z.b)))));
       
       % Parse direction
-                   d.x  = dir(1                              :i.nV                              );
+      d.x               = dir(1                              :i.nV                              );
       if i.nE > 0, d.r1 = dir(1+i.nV                         :i.nV+i.nE                         );
                    d.r2 = dir(1+i.nV+i.nE                    :i.nV+i.nE+i.nE                    ); end;
       if i.nI > 0, d.s1 = dir(1+i.nV+i.nE+i.nE               :i.nV+i.nE+i.nE+i.nI               );
@@ -131,26 +126,23 @@ classdef Direction < handle
     end
     
     % Evaluate search direction quantities
-    %   References : almost everything ;-)
-    %   Calls      : almost everything ;-)
-    %   Modifies   : almost everything ;-)
-    function              evalStep(d,i,c,p,z,a)
+    function evalStep(d,p,i,c,z,a)
       
       % Reset maximum exponent for interior-point parameter increases
       p.resetMuMaxExp;
       
       % Update penalty-interior-point parameters based on KKT errors
-      z.updateParameters(i,p)
-
+      z.updateParameters(p,i);
+      
       % Evaluate matrices
-      z.evalMatrices(i,c,p);
+      z.evalMatrices(p,i,c);
       
       % Set last penalty parameter
       z.setRhoLast(z.rho);
-
+      
       % Check for aggressive algorithm
       if p.algorithm == 1
-      
+        
         % Check KKT memory for potential mu increase limit
         if z.kkt(2) > max(z.kkt_), p.setMuMaxExpZero; end;
         
@@ -168,7 +160,7 @@ classdef Direction < handle
         
         % Loop through interior-point parameter values
         for j = 1:p.mu_trials
-        
+          
           % Set penalty and interior-point parameters
           z.setRho(0); z.setMu(Mu(j));
           
@@ -179,7 +171,7 @@ classdef Direction < handle
           d.x = min(d.x_norm_/max(d.x_norm,1),1)*d.x;
           
           % Run fraction-to-boundary
-          a.fractionToBoundary(i,p,z,d);
+          a.fractionToBoundary(p,i,z,d);
           
           % Cut length
           d.evalTrialStepCut(i,a);
@@ -189,7 +181,7 @@ classdef Direction < handle
           
           % Set feasibility direction data
           lred0_0_mu(j) = d.lred0;
-        
+          
         end
         
         % Initialize updating data
@@ -202,7 +194,7 @@ classdef Direction < handle
         
         % Loop through penalty parameter values
         for k = 1:p.rho_trials
-        
+          
           % Set penalty parameter
           z.setRho(max(p.rho_min,(p.rho_factor^(k-1))*rho_curr));
           
@@ -211,7 +203,7 @@ classdef Direction < handle
           
           % Loop through interior-point parameter values
           for j = 1:p.mu_trials
-          
+            
             % Set interior-point parameter
             z.setMu(Mu(j));
             
@@ -219,7 +211,7 @@ classdef Direction < handle
             d.evalLinearCombination(i,d1,d2,d3,[(z.rho/rho_curr+z.mu/mu_curr-1),(1-z.mu/mu_curr),(1-z.rho/rho_curr)]);
             
             % Run fraction-to-boundary
-            a.fractionToBoundary(i,p,z,d);
+            a.fractionToBoundary(p,i,z,d);
             
             % Cut steps
             d.evalTrialStepCut(i,a);
@@ -233,11 +225,11 @@ classdef Direction < handle
             m_rho_mu(j)      = d.m;
             
             % Check updating conditions for infeasible points
-            if z.v >  p.opt_err_tol & (ltred0_rho_mu(j) < p.update_con_1*lred0_0_mu(j) | qtred_rho_mu(j) < p.update_con_2*lred0_0_mu(j) | z.rho > z.kkt(1)^2), m_rho_mu(j) = inf; end;
+            if z.v >  p.opt_err_tol && (ltred0_rho_mu(j) < p.update_con_1*lred0_0_mu(j) || qtred_rho_mu(j) < p.update_con_2*lred0_0_mu(j) || z.rho > z.kkt(1)^2), m_rho_mu(j) = inf; end;
             
             % Check updating conditions for feasible points
-            if z.v <= p.opt_err_tol & qtred_rho_mu(j) < 0, m_rho_mu(j) = inf; end;
-          
+            if z.v <= p.opt_err_tol && qtred_rho_mu(j) < 0, m_rho_mu(j) = inf; end;
+            
           end
           
           % Find minimum m for current rho
@@ -245,16 +237,16 @@ classdef Direction < handle
           
           % Check for finite minimum
           if m_min < inf
-          
+            
             % Loop through mu values
             for j = 1:p.mu_trials
-            
+              
               % Set mu
               mu = Mu(j);
               
               % Check condition
               if m_rho_mu(j) <= p.update_con_3*m_min, z.setMu(mu); end;
-            
+              
             end
             
             % Set condition check
@@ -262,7 +254,7 @@ classdef Direction < handle
             
             % Break loop
             break;
-      
+            
           end
           
         end
@@ -272,7 +264,7 @@ classdef Direction < handle
         
         % Evaluate merit
         z.evalMerit(i);
-
+        
       end
       
       % Evaluate primal-dual right-hand side vector
@@ -286,14 +278,11 @@ classdef Direction < handle
       
       % Store last direction norm
       d.x_norm_ = d.x_norm;
-   
+      
     end
     
     % Evaluate and store trial step
-    %   References : i.*, x, r1, r2, lE, s1, s2, lI
-    %   Calls      : -
-    %   Modifies   : -
-    function v          = evalTrialStep(d,i)
+    function v = evalTrialStep(d,i)
       
       % Set direction components
                    v.x  = d.x ;
@@ -307,10 +296,7 @@ classdef Direction < handle
     end
     
     % Evaluate trial step cut by fraction-to-boundary rule
-    %   References : i.*, a.p, a.d, x, r1, r2, lE, s1, s2, lI
-    %   Calls      : -
-    %   Modifies   : x, r1, r2, lE, s1, s2, lI
-    function              evalTrialStepCut(d,i,a)
+    function evalTrialStepCut(d,i,a)
       
       % Set direction components
                    d.x  = a.p*d.x ;
@@ -324,11 +310,8 @@ classdef Direction < handle
     end
     
     % Evaluate and store directions for parameter combinations
-    %   References : i.*, z.rho, z.mu, z.g, z.cE, z.JE, z.r1, z.r2, z.lE, z.cI, z.JI, z.s1, z.s2, z.lI
-    %   Calls      : z.setRho, z.setMu, z.evalNewtonRhs, evalNewtonStep, evalTrialStep
-    %   Modifies   : z.rho, z.mu, z.b
     function [d1,d2,d3] = evalTrialSteps(d,i,z)
-
+      
       % Store current penalty and interior-point parameters
       rho_curr = z.rho;
       mu_curr  = z.mu;
@@ -353,6 +336,18 @@ classdef Direction < handle
       z.evalNewtonRhs(i);
       d.evalNewtonStep(i,z);
       d3 = d.evalTrialStep(i);
+      
+    end
+    
+    % Set direction
+    function setDirection(d,i,dx,dr1,dr2,ds1,ds2,dlE,dlI,dx_norm,dl_norm)
+      
+      % Set primal variables
+      d.x = dx;
+      if i.nE > 0, d.r1 = dr1; d.r2 = dr2; d.lE = dlE; end;
+      if i.nI > 0, d.s1 = ds1; d.s2 = ds2; d.lI = dlI; end;
+      d.x_norm = dx_norm;
+      d.l_norm = dl_norm;
       
     end
     

@@ -1,6 +1,9 @@
+% Author      : Frank E. Curtis
+% Description : Driver class for Pipal algorithm.
+
 % Pipal class
 classdef Pipal
-
+  
   % Class properties (private access)
   properties (SetAccess = private, GetAccess = private)
     
@@ -16,46 +19,51 @@ classdef Pipal
   
   % Class methods
   methods
-  
+    
     % Constructor
-    function P = Pipal(nl,algorithm)
-
+    function P = Pipal(name,nl,outfile,algorithm)
+      
       % Construct classes
-      P.i = Input(nl);
-      P.o = Output;
-      P.c = Counter;
       P.p = Parameter(algorithm);
-      P.z = Iterate(P.i,P.c,P.p);
-      P.d = Direction;
-      P.a = Acceptance;
-
+      P.i = Input(P.p,name,nl)  ;
+      P.o = Output(P.i,outfile) ;
+      P.c = Counter             ;
+      P.z = Iterate(P.p,P.i,P.c);
+      P.d = Direction           ;
+      P.a = Acceptance          ;
+      
+    end
+    
+    % Gets primal solution
+    function sol = getSolution(P)
+      sol = P.z.getSolution(P.i);
     end
     
     % Optimization algorithm
     function optimize(P)
-
+      
       % Print header and line break
       P.o.printHeader(P.i,    P.z);
       P.o.printBreak (    P.c    );
       
       % Iteration loop
-      while ~P.z.checkTermination(P.c,P.p)
-        P.o.printIterate   (    P.c,    P.z        );
-        P.d.evalStep       (P.i,P.c,P.p,P.z,    P.a);
+      while ~P.z.checkTermination(P.p,P.i,P.c)
+        P.o.printIterate   (        P.c,P.z        );
+        P.d.evalStep       (P.p,P.i,P.c,P.z,    P.a);
         P.o.printDirection (            P.z,P.d    );
-        P.a.lineSearch     (P.i,P.c,P.p,P.z,P.d    );
+        P.a.lineSearch     (P.p,P.i,P.c,P.z,P.d    );
         P.o.printAcceptance(                    P.a);
-        P.z.updateIterate  (P.i,P.c,P.p,    P.d,P.a);
+        P.z.updateIterate  (P.p,P.i,P.c,    P.d,P.a);
         P.c.incrementIterationCount                 ;
-        P.o.printBreak     (    P.c                );
+        P.o.printBreak     (        P.c            );
       end
       
       % Print footer and terminate
-      P.o.printFooter(P.c,P.p,P.z);
-      P.o.terminate               ;
+      P.o.printFooter(P.p,P.i,P.c,P.z);
+      P.o.terminate                   ;
       
     end
-        
+    
   end
   
 end

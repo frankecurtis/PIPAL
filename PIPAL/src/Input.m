@@ -1,9 +1,13 @@
+% Author      : Frank E. Curtis
+% Description : Class for reading in AMPL model.
+
 % Input class
 classdef Input < handle
   
   % Class properties (private set access)
   properties (SetAccess = private)
-
+    
+    id % problem name
     n0 % number of original formulation variables
     I1 % indices of free variables
     I2 % indices of fixed variables
@@ -38,6 +42,7 @@ classdef Input < handle
     nE % number of equality constraints
     nA % size of primal-dual matrix
     x0 % initial point
+    vi % counter for invalid bounds
     
   end
   
@@ -45,36 +50,39 @@ classdef Input < handle
   methods
     
     % Constructor
-    function i = Input(nl)
+    function i = Input(p,name,nl)
+      
+      % Set problem identity
+      i.id = strtrim(name);
       
       % Initialize AMPL data
-      [p.x,p.bl,p.bu,p.l,p.cl,p.cu] = amplfunc(nl);
-
+      [a.x,a.bl,a.bu,a.l,a.cl,a.cu] = amplfunc(nl);
+      
       % Set number of original formulation variables
-      i.n0 = length(p.x);
+      i.n0 = length(a.x);
       
       % Find index sets
-      i.I1 = find(p.bl <= -1e18 & p.bu >= 1e18);
-      i.I2 = find(p.bl ==  p.bu);
-      i.I3 = find(p.bl >  -1e18 & p.bu >= 1e18);
-      i.I4 = find(p.bl <= -1e18 & p.bu <  1e18);
-      i.I5 = find(p.bl >  -1e18 & p.bu <  1e18 & p.bl ~= p.bu);
-      i.I6 = find(p.cl ==  p.cu);
-      i.I7 = find(p.cl >  -1e18 & p.cu >= 1e18);
-      i.I8 = find(p.cl <= -1e18 & p.cu <  1e18);
-      i.I9 = find(p.cl >  -1e18 & p.cu <  1e18 & p.cl ~= p.cu);
+      i.I1 = find(a.bl <= -p.rhs_bnd & a.bu >= p.rhs_bnd);
+      i.I2 = find(a.bl ==  a.bu);
+      i.I3 = find(a.bl >  -p.rhs_bnd & a.bu >= p.rhs_bnd);
+      i.I4 = find(a.bl <= -p.rhs_bnd & a.bu <  p.rhs_bnd);
+      i.I5 = find(a.bl >  -p.rhs_bnd & a.bu <  p.rhs_bnd & a.bl ~= a.bu);
+      i.I6 = find(a.cl ==  a.cu);
+      i.I7 = find(a.cl >  -p.rhs_bnd & a.cu >= p.rhs_bnd);
+      i.I8 = find(a.cl <= -p.rhs_bnd & a.cu <  p.rhs_bnd);
+      i.I9 = find(a.cl >  -p.rhs_bnd & a.cu <  p.rhs_bnd & a.cl ~= a.cu);
       
       % Set right-hand side values
-      i.b2 = p.bl(i.I2);
-      i.l3 = p.bl(i.I3);
-      i.u4 = p.bu(i.I4);
-      i.l5 = p.bl(i.I5);
-      i.u5 = p.bu(i.I5);
-      i.b6 = p.cl(i.I6);
-      i.l7 = p.cl(i.I7);
-      i.u8 = p.cu(i.I8);
-      i.l9 = p.cl(i.I9);
-      i.u9 = p.cu(i.I9);
+      i.b2 = a.bl(i.I2);
+      i.l3 = a.bl(i.I3);
+      i.u4 = a.bu(i.I4);
+      i.l5 = a.bl(i.I5);
+      i.u5 = a.bu(i.I5);
+      i.b6 = a.cl(i.I6);
+      i.l7 = a.cl(i.I7);
+      i.u8 = a.cu(i.I8);
+      i.l9 = a.cl(i.I9);
+      i.u9 = a.cu(i.I9);
       
       % Set sizes of index sets
       i.n1 = length(i.I1);
@@ -87,6 +95,25 @@ classdef Input < handle
       i.n8 = length(i.I8);
       i.n9 = length(i.I9);
       
+      % Initialize number of invalid bounds
+      i.vi = 0;
+      
+      % Count invalid bounds
+      if i.n2 > 0, i.vi = i.vi + sum(i.b2 <= -p.rhs_bnd);
+                   i.vi = i.vi + sum(i.b2 >=  p.rhs_bnd); end;
+      if i.n3 > 0, i.vi = i.vi + sum(i.l3 >=  p.rhs_bnd); end;
+      if i.n4 > 0, i.vi = i.vi + sum(i.u4 <= -p.rhs_bnd); end;
+      if i.n5 > 0, i.vi = i.vi + sum(i.l5 >=  p.rhs_bnd);
+                   i.vi = i.vi + sum(i.u5 <= -p.rhs_bnd);
+                   i.vi = i.vi + sum(i.l5 >   i.u5     ); end;
+      if i.n6 > 0, i.vi = i.vi + sum(i.b6 <= -p.rhs_bnd);
+                   i.vi = i.vi + sum(i.b6 >=  p.rhs_bnd); end;
+      if i.n7 > 0, i.vi = i.vi + sum(i.l7 >=  p.rhs_bnd); end;
+      if i.n8 > 0, i.vi = i.vi + sum(i.u8 <= -p.rhs_bnd); end;
+      if i.n9 > 0, i.vi = i.vi + sum(i.l9 >=  p.rhs_bnd);
+                   i.vi = i.vi + sum(i.u9 <= -p.rhs_bnd);
+                   i.vi = i.vi + sum(i.l9 >   i.u9     ); end;
+      
       % Set number of variables and constraints
       i.nV = i.n1 + i.n3 + i.n4 + i.n5;
       i.nI = i.n3 + i.n4 + 2*i.n5 + i.n7 + i.n8 + 2*i.n9;
@@ -96,7 +123,7 @@ classdef Input < handle
       i.nA = i.nV + 3*i.nE + 3*i.nI;
       
       % Set initial point
-      i.x0 = [p.x(i.I1); p.x(i.I3); p.x(i.I4); p.x(i.I5);];
+      i.x0 = [a.x(i.I1); a.x(i.I3); a.x(i.I4); a.x(i.I5);];
       
     end
     
