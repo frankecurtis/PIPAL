@@ -144,7 +144,8 @@ classdef Iterate < handle
       try
         
         % Evaluate AMPL functions
-        [z.f,c_orig] = amplfunc(x_orig,0);
+        z.f = i.f_orig(x_orig);
+        c_orig = i.c_orig(x_orig);
         
       catch
         
@@ -197,7 +198,8 @@ classdef Iterate < handle
       try
         
         % Evaluate AMPL gradients
-        [g_orig,J_orig] = amplfunc(x_orig,1);
+        g_orig = i.g_orig(x_orig);
+        J_orig = i.J_orig(x_orig);
         
       catch
         
@@ -239,6 +241,7 @@ classdef Iterate < handle
       
       % Evaluate lambda in original space
       l_orig = z.evalLambdaOriginal(i);
+      x_orig = z.evalXOriginal(i);
       
       % Initialize/Reset evaluation flag
       z.err = 0;
@@ -250,8 +253,8 @@ classdef Iterate < handle
       try
         
         % Evaluate H_orig
-        if (i.nE+i.n7+i.n8+i.n9 == 0), H_orig = amplfunc([]);
-        else                           H_orig = amplfunc(l_orig); end;
+        if (i.nE+i.n7+i.n8+i.n9 == 0), H_orig = i.H_orig(x_orig, []);
+        else                           H_orig = i.H_orig(x_orig, l_orig); end;
         
       catch
         

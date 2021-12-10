@@ -21,11 +21,11 @@ classdef Pipal
   methods
     
     % Constructor
-    function P = Pipal(name,nl,outfile,algorithm)
+    function P = Pipal(name, f_orig, c_orig, g_orig, J_orig, H_orig, x0, bl, bu, l, cl, cu, outfile, algorithm)
       
       % Construct classes
       P.p = Parameter(algorithm);
-      P.i = Input(P.p,name,nl)  ;
+      P.i = Input(P.p, name, f_orig, c_orig, g_orig, J_orig, H_orig, x0, bl, bu, l, cl, cu);
       P.o = Output(P.i,outfile) ;
       P.c = Counter             ;
       P.z = Iterate(P.p,P.i,P.c);

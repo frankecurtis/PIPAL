@@ -43,46 +43,55 @@ classdef Input < handle
     nA % size of primal-dual matrix
     x0 % initial point
     vi % counter for invalid bounds
-    
+    f_orig % original objective
+    c_orig % original constraints
+    g_orig % original gradient of objective
+    J_orig % original jacobian of constraints
+    H_orig % original hessian of the lagrangian
+
   end
   
   % Class methods
   methods
     
     % Constructor
-    function i = Input(p,name,nl)
+    function i = Input(p, name, f_orig, c_orig, g_orig, J_orig, H_orig, x0, bl, bu, l, cl, cu)
       
       % Set problem identity
       i.id = strtrim(name);
       
-      % Initialize AMPL data
-      [a.x,a.bl,a.bu,a.l,a.cl,a.cu] = amplfunc(nl);
+      % store function pointers to original problem functions
+      i.f_orig = f_orig;
+      i.c_orig = c_orig;
+      i.g_orig = g_orig;
+      i.J_orig = J_orig;
+      i.H_orig = H_orig;
       
       % Set number of original formulation variables
-      i.n0 = length(a.x);
+      i.n0 = length(x0);
       
       % Find index sets
-      i.I1 = find(a.bl <= -p.rhs_bnd & a.bu >= p.rhs_bnd);
-      i.I2 = find(a.bl ==  a.bu);
-      i.I3 = find(a.bl >  -p.rhs_bnd & a.bu >= p.rhs_bnd);
-      i.I4 = find(a.bl <= -p.rhs_bnd & a.bu <  p.rhs_bnd);
-      i.I5 = find(a.bl >  -p.rhs_bnd & a.bu <  p.rhs_bnd & a.bl ~= a.bu);
-      i.I6 = find(a.cl ==  a.cu);
-      i.I7 = find(a.cl >  -p.rhs_bnd & a.cu >= p.rhs_bnd);
-      i.I8 = find(a.cl <= -p.rhs_bnd & a.cu <  p.rhs_bnd);
-      i.I9 = find(a.cl >  -p.rhs_bnd & a.cu <  p.rhs_bnd & a.cl ~= a.cu);
+      i.I1 = find(bl <= -p.rhs_bnd & bu >= p.rhs_bnd);
+      i.I2 = find(bl ==  bu);
+      i.I3 = find(bl >  -p.rhs_bnd & bu >= p.rhs_bnd);
+      i.I4 = find(bl <= -p.rhs_bnd & bu <  p.rhs_bnd);
+      i.I5 = find(bl >  -p.rhs_bnd & bu <  p.rhs_bnd & bl ~= bu);
+      i.I6 = find(cl ==  cu);
+      i.I7 = find(cl >  -p.rhs_bnd & cu >= p.rhs_bnd);
+      i.I8 = find(cl <= -p.rhs_bnd & cu <  p.rhs_bnd);
+      i.I9 = find(cl >  -p.rhs_bnd & cu <  p.rhs_bnd & cl ~= cu);
       
       % Set right-hand side values
-      i.b2 = a.bl(i.I2);
-      i.l3 = a.bl(i.I3);
-      i.u4 = a.bu(i.I4);
-      i.l5 = a.bl(i.I5);
-      i.u5 = a.bu(i.I5);
-      i.b6 = a.cl(i.I6);
-      i.l7 = a.cl(i.I7);
-      i.u8 = a.cu(i.I8);
-      i.l9 = a.cl(i.I9);
-      i.u9 = a.cu(i.I9);
+      i.b2 = bl(i.I2);
+      i.l3 = bl(i.I3);
+      i.u4 = bu(i.I4);
+      i.l5 = bl(i.I5);
+      i.u5 = bu(i.I5);
+      i.b6 = cl(i.I6);
+      i.l7 = cl(i.I7);
+      i.u8 = cu(i.I8);
+      i.l9 = cl(i.I9);
+      i.u9 = cu(i.I9);
       
       % Set sizes of index sets
       i.n1 = length(i.I1);
@@ -123,7 +132,7 @@ classdef Input < handle
       i.nA = i.nV + 3*i.nE + 3*i.nI;
       
       % Set initial point
-      i.x0 = [a.x(i.I1); a.x(i.I3); a.x(i.I4); a.x(i.I5);];
+      i.x0 = [x0(i.I1); x0(i.I3); x0(i.I4); x0(i.I5);];
       
     end
     
