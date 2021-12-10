@@ -185,9 +185,9 @@ classdef Direction < handle
         end
         
         % Initialize updating data
-        ltred0_rho_mu = zeros(p.mu_trials);
-        qtred_rho_mu  = zeros(p.mu_trials);
-        m_rho_mu      = zeros(p.mu_trials);
+        ltred0_rho_mu = zeros(p.mu_trials,1);
+        qtred_rho_mu  = zeros(p.mu_trials,1);
+        m_rho_mu      = zeros(p.mu_trials,1);
         
         % Initialize check
         check = 0;
